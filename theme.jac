@@ -91,6 +91,14 @@ def:pub buildStyles() -> any {
         "partnerRevenue": {"fontSize": 16, "fontWeight": "bold", "color": "#197963"},
         "cityMenu": {"marginHorizontal": 24, "marginTop": -16, "marginBottom": 20, "padding": 12, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 4, "maxHeight": 270, "overflow": "scroll"},
         "cityOption": {"paddingVertical": 10, "paddingHorizontal": 8, "borderBottomWidth": 1, "borderBottomColor": "#f0eee8"},
-        "cityOptionText": {"fontSize": 13, "color": "#183b32"}
+        "cityOptionText": {"fontSize": 13, "color": "#183b32"},
+        "bagPanel": {"marginHorizontal": 24, "marginBottom": 12, "padding": 14, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
+        "bagInfo": {"gap": 4},
+        "totalCard": {"marginHorizontal": 24, "marginBottom": 5, "paddingHorizontal": 16, "paddingVertical": 12, "borderRadius": 12, "backgroundColor": "#e9f3ed", "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
+        "totalCaption": {"fontSize": 11, "color": "#777c74", "marginTop": 3},
+        "totalPrice": {"fontSize": 23, "fontWeight": "bold", "color": "#197963"},
+        "weightDisclaimer": {"marginHorizontal": 24, "marginTop": 14, "marginBottom": 24, "padding": 12, "borderRadius": 10, "backgroundColor": "#f1eee5", "fontSize": 11, "lineHeight": 16, "color": "#686b64"},
+        "reserveGroup": {"alignItems": "flex-end", "gap": 4},
+        "cardTotal": {"fontSize": 11, "fontWeight": "bold", "color": "#197963"}
     });
 }
