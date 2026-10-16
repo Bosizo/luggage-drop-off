@@ -1,0 +1,28 @@
+[project]
+name = "mobile-starter"
+version = "0.0.1"
+description = "Mobile app starter - one Jac source, iOS + Android + web"
+entry-point = "main.jac"
+kind = "web-app"
+client_kind = "mobui"
+
+[client]
+
+[byllm]
+[byllm.model]
+default_model = "${LLM_MODEL:-gpt-4o-mini}"
+api_key = "${OPENAI_API_KEY:-}"
+
+
+[dependencies]
+[dependencies.npm]
+react = "^18.2.0"
+react-dom = "^18.2.0"
+react-native-web = "^0.19.13"
+
+[jacpack]
+name = 'luggage-drop-off'
+description = 'Jac IDE snapshot for luggage-drop-off'
+
+[jachammer]
+project_id = "prj_2fcf97c153df466fb4a0741b0abe25d6"
