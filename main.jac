@@ -109,7 +109,7 @@ def:pub app -> JsxElement {
 
     activeReservations = reservations;
     return <ScrollView style={[styles.screen, {height: viewport.height}]} contentContainerStyle={styles.screenContent}>
-        <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>luggagedrop</Text><View style={styles.navSpacer}/><Text style={styles.navLink}>Travel lighter</Text></View>
+        <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>LuggageDrop</Text><View style={styles.navSpacer}/><Text style={styles.navLink}>Travel lighter</Text></View>
         {checkoutDetails["screen"] == "checkout" and <View>
             <Pressable style={styles.backButton} onPress={lambda { checkoutDetails = {**checkoutDetails, "screen": "browse"}; }}><Text style={styles.backText}>Back to storage options</Text></Pressable>
             {checkoutDetails["confirmed"] == "true" and <View style={styles.checkoutSuccess}><Text style={styles.checkoutTitle}>Reservation confirmed</Text><Text style={styles.checkoutCopy}>{checkoutDetails["venue"]} · {str(checkoutDetails["bags"])} bags · {str(checkoutDetails["hours"])} hours</Text><Text style={styles.checkoutTotal}>${str(checkoutDetails["total"])}</Text><Text style={styles.checkoutCopy}>Demo checkout only. No payment was collected.</Text></View>}
