@@ -88,6 +88,9 @@ def:pub buildStyles() -> any {
         "partnerSection": {"paddingHorizontal": 24, "paddingTop": 22, "paddingBottom": 10},
         "partnerVenue": {"marginHorizontal": 24, "marginBottom": 10, "padding": 14, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 10},
         "partnerRow": {"flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
-        "partnerRevenue": {"fontSize": 16, "fontWeight": "bold", "color": "#197963"}
+        "partnerRevenue": {"fontSize": 16, "fontWeight": "bold", "color": "#197963"},
+        "cityMenu": {"marginHorizontal": 24, "marginTop": -16, "marginBottom": 20, "padding": 12, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 4},
+        "cityOption": {"paddingVertical": 10, "paddingHorizontal": 8, "borderBottomWidth": 1, "borderBottomColor": "#f0eee8"},
+        "cityOptionText": {"fontSize": 13, "color": "#183b32"}
     });
 }

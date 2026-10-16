@@ -57,9 +57,9 @@ glob styles = buildStyles();
 def:pub app -> JsxElement {
     has venues: list[Venue] = [],
         reservations: list[Reservation] = [],
-        destination: str = "City · London",
+        destination: str = "London · Heathrow",
         hours: str = "3",
-        screen: str = "traveler";
+        cityMenu: bool = False;
     viewport = useWindowDimensions();
 
     async can with entry {
@@ -79,24 +79,24 @@ def:pub app -> JsxElement {
         reservations = await load_reservations();
     }
 
-    def choose(value: str) { destination = value; }
+    def choose(value: str) {
+        destination = value;
+    }
 
     activeReservations = reservations;
     activeValue = 0;
     for r in activeReservations { activeValue = activeValue + r.total; }
 
     return <ScrollView style={[styles.screen, {height: viewport.height}]} contentContainerStyle={styles.screenContent}>
-        <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>luggagedrop</Text><View style={styles.navSpacer}/><Pressable onPress={lambda { screen = "traveler"; }}><Text style={styles.navLink}>Find a spot</Text></Pressable><Pressable onPress={lambda { screen = "partner"; }}><Text style={styles.navLink}>For venues</Text></Pressable></View>
-        {screen == "traveler" and <View>
-            <View style={styles.modeRow}><Pressable style={styles.modeButton} onPress={lambda { choose("City · London"); }}><Text style={styles.modeText}>City</Text></Pressable><Pressable style={styles.modeButton} onPress={lambda { choose("Airport · Heathrow"); }}><Text style={styles.modeText}>Heathrow</Text></Pressable><Pressable style={styles.modeButton} onPress={lambda { choose("Airport · Schiphol"); }}><Text style={styles.modeText}>Schiphol</Text></Pressable></View>
+        <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>luggagedrop</Text><View style={styles.navSpacer}/><Text style={styles.navLink}>Travel lighter</Text></View>
+        <View>
             <View style={styles.hero}><View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>YOUR CITY, HANDS-FREE</Text></View><Text style={styles.heroTitle}>Drop your bags.{"\n"}Pick up your day.</Text><Text style={styles.heroSubtitle}>Safe, local luggage storage at places worth discovering.</Text></View>
-            <View style={styles.destinationRow}><Pressable style={styles.destinationButton} onPress={lambda { choose("City · London"); }}><Text style={styles.destinationText}>London</Text></Pressable><Pressable style={styles.destinationButton} onPress={lambda { choose("City · Amsterdam"); }}><Text style={styles.destinationText}>Amsterdam</Text></Pressable></View>
-            <View style={styles.searchPanel}><View style={styles.searchField}><Text style={styles.fieldLabel}>DESTINATION</Text><Text style={styles.durationValue}>{destination}</Text></View><View style={styles.fieldDivider}/><View style={styles.durationField}><Text style={styles.fieldLabel}>HOURS</Text><View style={styles.durationRow}><Pressable style={styles.stepperButton} onPress={lambda { hours = str(int(hours) - 1 if int(hours) > 1 else 1); }}><Text style={styles.stepperText}>−</Text></Pressable><Text style={styles.durationValue}>{hours}</Text><Pressable style={styles.stepperButton} onPress={lambda { hours = str(int(hours) + 1 if int(hours) < 12 else 12); }}><Text style={styles.stepperText}>+</Text></Pressable></View></View></View>
+            <View style={styles.searchPanel}><View style={styles.searchField}><Text style={styles.fieldLabel}>CITY OR AIRPORT</Text><Pressable style={styles.fieldValueRow} onPress={lambda { cityMenu = not cityMenu; }}><Text style={styles.durationValue}>{destination}</Text><Text style={styles.pin}>⌄</Text></Pressable></View><View style={styles.fieldDivider}/><View style={styles.durationField}><Text style={styles.fieldLabel}>HOURS</Text><View style={styles.durationRow}><Pressable style={styles.stepperButton} onPress={lambda { hours = str(int(hours) - 1 if int(hours) > 1 else 1); }}><Text style={styles.stepperText}>−</Text></Pressable><Text style={styles.durationValue}>{hours}</Text><Pressable style={styles.stepperButton} onPress={lambda { hours = str(int(hours) + 1 if int(hours) < 12 else 12); }}><Text style={styles.stepperText}>+</Text></Pressable></View></View></View>
+            {cityMenu and <View style={styles.cityMenu}><Text style={styles.fieldLabel}>POPULAR DESTINATIONS</Text>{[<Pressable key={city} style={styles.cityOption} onPress={lambda { choose(city); cityMenu = False; }}><Text style={styles.cityOptionText}>{city}</Text></Pressable> for city in ["London · Heathrow", "Amsterdam · Schiphol", "Paris · Charles de Gaulle", "New York · JFK", "Tokyo · Haneda", "Singapore · Changi", "Dubai · DXB", "Rome · Fiumicino"]]}</View>}
             <View style={styles.resultsHeader}><View><Text style={styles.sectionTitle}>Good spots nearby</Text><Text style={styles.resultSubtitle}>{destination}</Text></View><View style={styles.countPill}><Text style={styles.countText}>{str(len(venues))} spots</Text></View></View>
             {[<View key={r.confirmation} style={styles.bookingCard}><View style={styles.successCopy}><Text style={styles.successTitle}>{r.venue_name}</Text><Text style={styles.successSubtitle}>{str(r.hours)} hours · ${str(r.total)} · Ref {r.confirmation[:8]}</Text></View><Pressable style={styles.cancelButton} onPress={lambda { cancel(r.confirmation); }}><Text style={styles.cancelText}>Cancel</Text></Pressable></View> for r in activeReservations]}
             <View style={styles.list}>{[<VenueCard key={v.name} venue={v} onReserve={reserve}/> for v in venues]}</View>
-        </View>}
-        {screen == "partner" and <View><View style={styles.partnerHero}><View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>LUGGAGEDROP PARTNER</Text></View><Text style={styles.partnerTitle}>Your space earns.{"\n"}Travelers explore.</Text><Text style={styles.heroSubtitle}>A clear view of listings and booking activity.</Text></View><View style={styles.metricRow}><View style={styles.metricCard}><Text style={styles.metricValue}>{str(len(venues))}</Text><Text style={styles.metricLabel}>Listed venues</Text></View><View style={styles.metricCard}><Text style={styles.metricValue}>{str(len(activeReservations))}</Text><Text style={styles.metricLabel}>Bookings</Text></View><View style={styles.metricCard}><Text style={styles.metricValue}>${str(activeValue)}</Text><Text style={styles.metricLabel}>Booking value</Text></View></View><View style={styles.partnerSection}><Text style={styles.sectionTitle}>Venue activity</Text></View>{[<View key={v.name} style={styles.partnerVenue}><Text style={styles.venueName}>{v.name}</Text><Text style={styles.mutedSmall}>{v.neighborhood} · {v.category}</Text><Text style={styles.partnerRevenue}>{str(len([r for r in activeReservations if r.venue_name == v.name]))} active · ${str(v.rate)}/bag/hour</Text></View> for v in venues]}</View>}
+        </View>
     </ScrollView>;
 }
 
