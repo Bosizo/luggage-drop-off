@@ -115,6 +115,10 @@ def:pub buildStyles() -> any {
         "paymentName": {"fontSize": 13, "fontWeight": "bold", "color": "#183b32"},
         "checkoutButton": {"marginHorizontal": 24, "marginTop": 12, "paddingVertical": 15, "paddingHorizontal": 16, "borderRadius": 11, "backgroundColor": "#197963", "alignItems": "center"},
         "checkoutSuccess": {"marginHorizontal": 24, "marginTop": 32, "padding": 22, "borderRadius": 16, "backgroundColor": "#edf6ef", "alignItems": "center", "gap": 12},
-        "checkoutTitle": {"fontSize": 22, "fontWeight": "bold", "color": "#183b32"}
+        "checkoutTitle": {"fontSize": 22, "fontWeight": "bold", "color": "#183b32"},
+        "partnerPanel": {"marginHorizontal": 24, "marginBottom": 16, "padding": 15, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 10},
+        "partnerInput": {"height": 42, "paddingHorizontal": 11, "borderRadius": 9, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "color": "#183b32", "fontSize": 13},
+        "bagTag": {"paddingVertical": 18, "paddingHorizontal": 14, "borderRadius": 12, "borderWidth": 1, "borderColor": "#197963", "backgroundColor": "#edf6ef", "fontSize": 24, "fontWeight": "bold", "letterSpacing": 3, "textAlign": "center", "color": "#183b32"},
+        "promotionText": {"padding": 12, "borderRadius": 10, "backgroundColor": "#f8f4e9", "fontSize": 12, "lineHeight": 17, "fontWeight": "600", "color": "#8b6333"}
     });
 }
