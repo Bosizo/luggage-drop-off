@@ -1,5 +1,9 @@
 import from "@jac/mobui" { View, Text, Pressable, TextInput, ScrollView, useWindowDimensions }
 import from .theme { buildStyles }
+import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
+
+glob _cameraStream: any = None;
+glob _scanTimer: any = None;
 
 node Venue {
     has name: str,
@@ -19,6 +23,12 @@ node Venue {
         promotion: str = "";
 }
 
+node HostAccount {
+    has email: str,
+        name: str,
+        created_at: str = "";
+}
+
 node Reservation {
     has venue_name: str,
         neighborhood: str,
@@ -31,7 +41,8 @@ node Reservation {
         host_code: str = "",
         checked_in: bool = False,
         released: bool = False,
-        promotion: str = "";
+        promotion: str = "",
+        host_email: str = "";
 }
 
 """Return only venues for the selected city; seed lightweight London inventory once."""
@@ -48,9 +59,34 @@ def:pub load_venues(destination: str = "London") -> list[Venue] {
     return [v for v in allVenues if v.city == cityKey];
 }
 
-def:pub load_reservations() -> list[Reservation] { return [root -->][?:Reservation]; }
+def load_reservations() -> list[Reservation] { return [root -->][?:Reservation]; }
 
-def:pub create_reservation(venue_name: str, neighborhood: str, hours: int, bags: int) -> Reservation {
+def complete_host_signup(email: str, name: str) -> HostAccount {
+    for account in [root -->][?:HostAccount] {
+        if account.email == email { account.name = name; return account; }
+    }
+    return root ++> HostAccount(email=email, name=name);
+}
+
+def current_host() -> HostAccount | None {
+    accounts = [root -->][?:HostAccount];
+    if len(accounts) > 0 { return accounts[0]; }
+    return None;
+}
+
+def my_host_venues() -> list[Venue] {
+    accounts = [root -->][?:HostAccount];
+    if len(accounts) == 0 { return []; }
+    return [v for v in [root -->][?:Venue] if v.owner_name == accounts[0].email];
+}
+
+def my_handoffs() -> list[Reservation] {
+    accounts = [root -->][?:HostAccount];
+    if len(accounts) == 0 { return []; }
+    return [r for r in [root -->][?:Reservation] if r.host_email == accounts[0].email];
+}
+
+def create_reservation(venue_name: str, neighborhood: str, hours: int, bags: int) -> Reservation {
     safe_hours = hours if hours >= 1 and hours <= 12 else 3;
     safe_bags = bags if bags >= 1 else 1;
     rate = 3 if venue_name == "The Hoxton Holborn" else 2;
@@ -58,20 +94,26 @@ def:pub create_reservation(venue_name: str, neighborhood: str, hours: int, bags:
     return root ++> Reservation(venue_name=venue_name, neighborhood=neighborhood, hours=safe_hours, total=total, bags=safe_bags);
 }
 
-def:pub cancel_reservation(confirmation: str) -> bool {
+def cancel_reservation(confirmation: str) -> bool {
     for reservation in [root -->][?:Reservation] {
         if reservation.confirmation == confirmation { del reservation; return True; }
     }
     return False;
 }
 
-def:pub partner_signup(name: str, city: str) -> Venue {
-    return root ++> Venue(name=name, neighborhood="Airport district", category="Host partner", rate=2, rating="New", walk="Nearby", capacity="0 bags", city=city, verified=False, active_capacity=0, partner_status="Pending verification");
+def partner_signup(name: str, city: str, owner_name: str) -> Venue {
+    if not name.strip() or not owner_name.strip() { raise ValueError("Venue and owner name are required"); }
+    for venue in [root -->][?:Venue] {
+        if venue.owner_name == owner_name and venue.name == name { return venue; }
+    }
+    return root ++> Venue(name=name.strip(), neighborhood="Airport district", category="Host partner", rate=2, rating="New", walk="Nearby", capacity="0 bags", city=city, verified=False, active_capacity=0, partner_status="Pending verification", owner_name=owner_name.strip());
 }
 
-def:pub update_partner_venue(name: str, opening: str, closing: str, capacity: int, rate: int) -> bool {
+def update_partner_venue(name: str, opening: str, closing: str, capacity: int, rate: int) -> bool {
+    profiles = [root -->][?:HostAccount];
+    if len(profiles) == 0 { return False; }
     for venue in [root -->][?:Venue] {
-        if venue.name == name {
+        if venue.name == name and venue.owner_name == profiles[0].email {
             venue.opening_hours = opening;
             venue.closing_hours = closing;
             venue.active_capacity = capacity if capacity >= 0 else 0;
@@ -82,7 +124,14 @@ def:pub update_partner_venue(name: str, opening: str, closing: str, capacity: in
     return False;
 }
 
-def:pub create_handoff_reference(venue_name: str, neighborhood: str, hours: int, bags: int, promotion: str) -> Reservation {
+def create_handoff_reference(venue_name: str, neighborhood: str, hours: int, bags: int, promotion: str) -> Reservation {
+    hostProfiles = [root -->][?:HostAccount];
+    if len(hostProfiles) == 0 { raise ValueError("Host account required"); }
+    hostVenue = None;
+    for venue in [root -->][?:Venue] {
+        if venue.name == venue_name and venue.owner_name == hostProfiles[0].email { hostVenue = venue; }
+    }
+    if hostVenue is None { raise ValueError("This host does not own that venue"); }
     safe_hours = hours if hours >= 1 and hours <= 12 else 3;
     safe_bags = bags if bags >= 1 else 1;
     rate = 3 if venue_name == "The Hoxton Holborn" else 2;
@@ -90,24 +139,30 @@ def:pub create_handoff_reference(venue_name: str, neighborhood: str, hours: int,
     owner_pin = "";
     host_pin = "";
     for ch in tag { owner_pin = owner_pin + str((ord(ch) % 10)); host_pin = host_pin + str(((ord(ch) + 3) % 10)); }
-    return root ++> Reservation(venue_name=venue_name, neighborhood=neighborhood, hours=safe_hours, total=rate * safe_hours * safe_bags, bags=safe_bags, bag_tag=tag, owner_code=owner_pin[:4], host_code=host_pin[:4], promotion=promotion);
+    return root ++> Reservation(venue_name=venue_name, neighborhood=neighborhood, hours=safe_hours, total=rate * safe_hours * safe_bags, bags=safe_bags, bag_tag=tag, owner_code=owner_pin[:4], host_code=host_pin[:4], promotion=promotion, host_email=hostProfiles[0].email);
 }
 
-def:pub checkin_bags(bag_tag: str) -> bool {
+def release_bags(bag_tag: str, owner_code: str, host_code: str) -> bool {
+    profiles = [root -->][?:HostAccount];
+    if len(profiles) == 0 { return False; }
     for reservation in [root -->][?:Reservation] {
-        if reservation.bag_tag == bag_tag and not reservation.checked_in and not reservation.released {
-            reservation.checked_in = True;
+        if reservation.host_email == profiles[0].email and reservation.bag_tag == bag_tag and reservation.checked_in and reservation.owner_code == owner_code and reservation.host_code == host_code and not reservation.released {
+            reservation.released = True;
             return True;
         }
     }
     return False;
 }
 
-def:pub release_bags(bag_tag: str, owner_code: str, host_code: str) -> bool {
-    for reservation in [root -->][?:Reservation] {
-        if reservation.bag_tag == bag_tag and reservation.checked_in and reservation.owner_code == owner_code and reservation.host_code == host_code and not reservation.released {
-            reservation.released = True;
-            return True;
+def checkin_bags(bag_tag: str, owner_code: str) -> bool {
+    profiles = [root -->][?:HostAccount];
+    if len(profiles) == 0 { return False; }
+    for userRoot in allroots() {
+        for reservation in [userRoot -->][?:Reservation] {
+            if reservation.host_email == profiles[0].email and reservation.bag_tag == bag_tag and not reservation.checked_in and not reservation.released {
+                reservation.checked_in = True;
+                return True;
+            }
         }
     }
     return False;
@@ -153,13 +208,18 @@ def:pub app -> JsxElement {
         hours: str = "3",
         bags: str = "1",
         airportSearch: str = "",
+        hostEmail: str = "",
+        hostPassword: str = "",
+        hostName: str = "",
+        authMessage: str = "",
+        scannerStatus: str = "Camera QR scanning is not enabled in this web build. Use manual tag entry.",
         appMode: str = "traveler",
         checkoutDetails: dict[str, str] = {"screen": "browse", "cityMenu": "false", "payment": ""};
     viewport = useWindowDimensions();
 
     async can with entry {
         venues = await load_venues("London");
-        reservations = await load_reservations();
+        if jacIsLoggedIn() { reservations = await load_reservations(); }
     }
 
     def reserve(name: str, area: str, count: int, bagCount: int) {
@@ -177,10 +237,40 @@ def:pub app -> JsxElement {
     }
 
     async def onboardPartner {
-        cityName = airportSearch.strip() if airportSearch.strip() else "London";
-        _ = await partner_signup(destination, cityName);
-        venues = await load_venues(cityName);
+        signup_result: dict | None = None;
+        login_ok: bool = False;
+        profile: HostAccount | None = None;
+        venue: Venue | None = None;
+        cityName = destination.split(",")[0];
+        signup_result = await jacSignup(hostEmail, hostPassword);
+        if not signup_result["success"] { authMessage = str(signup_result["error"]); return; }
+        login_ok = await jacLogin(hostEmail, hostPassword);
+        if not login_ok { authMessage = "Account created. Please sign in to continue."; return; }
+        profile = await complete_host_signup(hostEmail, hostName);
+        venue = await partner_signup(airportSearch, cityName, hostEmail);
+        venues = [venue];
+        reservations = await load_reservations();
         appMode = "partner";
+        authMessage = "Host account created and signed in.";
+    }
+
+    async def signInHost {
+        login_ok: bool = False;
+        profile: HostAccount | None = None;
+        login_ok = await jacLogin(hostEmail, hostPassword);
+        if not login_ok { authMessage = "Could not sign in with those credentials."; return; }
+        profile = await current_host();
+        if profile is None { authMessage = "No host profile is linked to this account yet."; return; }
+        authMessage = "Signed in as " + profile.name;
+        appMode = "partner";
+        venues = await load_venues(profile.email);
+        reservations = await load_reservations();
+    }
+
+    def signOutHost {
+        jacLogout();
+        appMode = "traveler";
+        authMessage = "";
     }
 
     async def saveVenueSettings(name: str, opening: str, closing: str, capacity: int, rate: int) {
@@ -225,11 +315,25 @@ def:pub app -> JsxElement {
     return <ScrollView style={[styles.screen, {height: viewport.height}]} contentContainerStyle={styles.screenContent}>
         <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>LuggageDrop</Text><View style={styles.navSpacer}/><Pressable onPress={lambda { appMode = "traveler"; }}><Text style={styles.navLink}>Travel</Text></Pressable><Pressable onPress={lambda { appMode = "partner"; }}><Text style={styles.navLink}>Host a space</Text></Pressable></View>
         {appMode == "partner" and <View>
-            <View style={styles.hero}><View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>LUGGAGEDROP HOSTS</Text></View><Text style={styles.heroTitle}>Welcome, local{"\n"}hosts.</Text><Text style={styles.heroSubtitle}>Offer secure bag storage and earn from unused space.</Text></View>
-            {len([v for v in venues if v.partner_status == "Pending verification"]) == 0 and <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Partner sign-up</Text><Text style={styles.mutedSmall}>Enter your venue name, then choose a city for your listing.</Text><TextInput style={styles.partnerInput} value={airportSearch} placeholder="Venue name" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { airportSearch = value; }}/><Pressable style={styles.checkoutButton} onPress={onboardPartner}><Text style={styles.reserveButtonText}>Create host profile</Text></Pressable></View>}
-            <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Venue operations</Text><Text style={styles.mutedSmall}>Hours, available bag capacity and hourly tier. New partners are marked pending verification.</Text>
-                {[<View key={venue.name} style={styles.partnerVenue}><Text style={styles.venueName}>{venue.name}</Text><Text style={styles.mutedSmall}>{venue.city} · {venue.partner_status}</Text><Text style={styles.mutedSmall}>Open {venue.opening_hours}–{venue.closing_hours} · {str(venue.active_capacity)} bags · ${str(venue.rate)}/hour</Text><View style={styles.durationRow}><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity + 1, venue.rate); }}><Text style={styles.stepperText}>+</Text></Pressable><Text style={styles.mutedSmall}>Adjust capacity</Text><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity, 3 if venue.rate == 2 else 2); }}><Text style={styles.stepperText}>$2 / $3</Text></Pressable></View></View> for venue in venues]}</View>
-            <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Bag release verification</Text><Text style={styles.mutedSmall}>Demo flow: issue a bag-tag reference, check the traveler in, then require both demo codes to match before release. This does not scan a QR or verify a real identity.</Text><TextInput style={styles.partnerInput} value={checkoutDetails["tagInput"] if "tagInput" in checkoutDetails else ""} placeholder="Bag tag reference" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "tagInput": value}; }}/><TextInput style={styles.partnerInput} value={checkoutDetails["ownerInput"] if "ownerInput" in checkoutDetails else ""} placeholder="Traveler owner code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "ownerInput": value}; }}/><TextInput style={styles.partnerInput} value={checkoutDetails["hostInput"] if "hostInput" in checkoutDetails else ""} placeholder="Host release code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "hostInput": value}; }}/><Pressable style={styles.checkoutButton} onPress={lambda { releaseBag(checkoutDetails["tagInput"], checkoutDetails["ownerInput"], checkoutDetails["hostInput"]); }}><Text style={styles.reserveButtonText}>Verify both codes and release</Text></Pressable></View>
+            {not jacIsLoggedIn() and <View style={styles.partnerPanel}>
+                <Text style={styles.sectionTitle}>Host partner account</Text>
+                <Text style={styles.mutedSmall}>Create an account or sign in to manage your own host venue.</Text>
+                <TextInput style={styles.partnerInput} value={hostName} placeholder="Host contact name" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { hostName = value; }}/>
+                <TextInput style={styles.partnerInput} value={hostEmail} placeholder="Email address" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { hostEmail = value; }}/>
+                <TextInput style={styles.partnerInput} value={hostPassword} placeholder="Password" placeholderTextColor="#777c74" secureTextEntry={True} onChangeText={lambda (value: str) { hostPassword = value; }}/>
+                <TextInput style={styles.partnerInput} value={airportSearch} placeholder="Venue name" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { airportSearch = value; }}/>
+                <Pressable style={styles.checkoutButton} onPress={onboardPartner}><Text style={styles.reserveButtonText}>Create secure host account</Text></Pressable>
+                <Pressable style={styles.backButton} onPress={lambda { signInHost(); }}><Text style={styles.backText}>Already registered? Sign in</Text></Pressable>
+                <Text style={styles.mutedSmall}>{authMessage}</Text>
+            </View>}
+            {jacIsLoggedIn() and <View>
+                <View style={styles.hero}><View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>LUGGAGEDROP HOSTS</Text></View><Text style={styles.heroTitle}>Welcome, local{"\n"}hosts.</Text><Text style={styles.heroSubtitle}>Offer secure bag storage and earn from unused space.</Text></View>
+                <Pressable style={styles.backButton} onPress={lambda { signOutHost(); }}><Text style={styles.backText}>Sign out</Text></Pressable>
+                {len([v for v in venues if v.owner_name == hostEmail]) == 0 and <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Add your venue</Text><Text style={styles.mutedSmall}>Your account is signed in. Create a host listing in your selected city.</Text><TextInput style={styles.partnerInput} value={airportSearch} placeholder="Venue name" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { airportSearch = value; }}/><Pressable style={styles.checkoutButton} onPress={onboardPartner}><Text style={styles.reserveButtonText}>Create venue listing</Text></Pressable></View>}
+                <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Your venue operations</Text><Text style={styles.mutedSmall}>Only venues owned by your signed-in account are shown. Verification remains pending until reviewed.</Text>
+                    {[<View key={venue.name} style={styles.partnerVenue}><Text style={styles.venueName}>{venue.name}</Text><Text style={styles.mutedSmall}>{venue.city} · {venue.partner_status}</Text><Text style={styles.mutedSmall}>Open {venue.opening_hours}–{venue.closing_hours} · {str(venue.active_capacity)} bags · ${str(venue.rate)}/hour</Text><View style={styles.durationRow}><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity + 1, venue.rate); }}><Text style={styles.stepperText}>+</Text></Pressable><Text style={styles.mutedSmall}>Capacity</Text><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity, 3 if venue.rate == 2 else 2); }}><Text style={styles.stepperText}>$2 / $3</Text></Pressable></View></View> for venue in [v for v in venues if v.owner_name == hostEmail]]}</View>
+                <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Bag release verification</Text><Text style={styles.mutedSmall}>Camera QR scanning is unavailable in this build. Enter the tag reference and both codes manually. Release succeeds only for a checked-in reservation at your own venue.</Text><TextInput style={styles.partnerInput} value={checkoutDetails["tagInput"] if "tagInput" in checkoutDetails else ""} placeholder="Bag tag reference" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "tagInput": value}; }}/><Pressable style={styles.backButton} onPress={lambda { markCheckedIn(checkoutDetails["tagInput"]); }}><Text style={styles.backText}>Check in tag</Text></Pressable><TextInput style={styles.partnerInput} value={checkoutDetails["ownerInput"] if "ownerInput" in checkoutDetails else ""} placeholder="Traveler owner code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "ownerInput": value}; }}/><TextInput style={styles.partnerInput} value={checkoutDetails["hostInput"] if "hostInput" in checkoutDetails else ""} placeholder="Host release code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "hostInput": value}; }}/><Pressable style={styles.checkoutButton} onPress={lambda { releaseBag(checkoutDetails["tagInput"], checkoutDetails["ownerInput"], checkoutDetails["hostInput"]); }}><Text style={styles.reserveButtonText}>Verify both codes and release</Text></Pressable></View>
+            </View>}
         </View>}
         {appMode == "traveler" and checkoutDetails["screen"] == "checkout" and <View>
             <Pressable style={styles.backButton} onPress={lambda { checkoutDetails = {**checkoutDetails, "screen": "browse"}; }}><Text style={styles.backText}>Back to storage options</Text></Pressable>
