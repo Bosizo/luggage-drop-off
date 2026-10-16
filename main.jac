@@ -94,7 +94,7 @@ def create_reservation(venue_name: str, neighborhood: str, hours: int, bags: int
     return root ++> Reservation(venue_name=venue_name, neighborhood=neighborhood, hours=safe_hours, total=total, bags=safe_bags);
 }
 
-def cancel_reservation(confirmation: str) -> bool {
+def:pub cancel_reservation(confirmation: str) -> bool {
     for reservation in [root -->][?:Reservation] {
         if reservation.confirmation == confirmation { del reservation; return True; }
     }
@@ -274,8 +274,9 @@ def:pub app -> JsxElement {
     }
 
     async def saveVenueSettings(name: str, opening: str, closing: str, capacity: int, rate: int) {
-        _ = await update_partner_venue(name, opening, closing, capacity, rate);
-        venues = venues;
+        saved: bool = False;
+        saved = await update_partner_venue(name, opening, closing, capacity, rate);
+        authMessage = "Venue settings saved." if saved else "Venue update rejected: this account does not own that venue.";
     }
 
     async def issueBagTag(name: str, area: str) {
@@ -285,12 +286,16 @@ def:pub app -> JsxElement {
         appMode = "traveler";
     }
 
-    async def markCheckedIn(tag: str) {
-        _ = await checkin_bags(tag);
+    async def markCheckedIn(tag: str, ownerPin: str) {
+        checkinOk: bool = False;
+        checkinOk = await checkin_bags(tag, ownerPin);
+        authMessage = "Traveler code accepted; bag checked in." if checkinOk else "Check-in failed: tag or traveler code did not match this host.";
     }
 
-    async def releaseBag(tag: str, ownerPin: str, hostPin: str) -> bool {
-        return await release_bags(tag, ownerPin, hostPin);
+    async def releaseBag(tag: str, ownerPin: str, hostPin: str) {
+        releaseOk: bool = False;
+        releaseOk = await release_bags(tag, ownerPin, hostPin);
+        authMessage = "Both codes matched. Bag release recorded." if releaseOk else "Release denied: signed-in host, check-in, and both codes must match.";
     }
 
     def choose(value: str) {
@@ -332,7 +337,7 @@ def:pub app -> JsxElement {
                 {len([v for v in venues if v.owner_name == hostEmail]) == 0 and <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Add your venue</Text><Text style={styles.mutedSmall}>Your account is signed in. Create a host listing in your selected city.</Text><TextInput style={styles.partnerInput} value={airportSearch} placeholder="Venue name" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { airportSearch = value; }}/><Pressable style={styles.checkoutButton} onPress={onboardPartner}><Text style={styles.reserveButtonText}>Create venue listing</Text></Pressable></View>}
                 <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Your venue operations</Text><Text style={styles.mutedSmall}>Only venues owned by your signed-in account are shown. Verification remains pending until reviewed.</Text>
                     {[<View key={venue.name} style={styles.partnerVenue}><Text style={styles.venueName}>{venue.name}</Text><Text style={styles.mutedSmall}>{venue.city} · {venue.partner_status}</Text><Text style={styles.mutedSmall}>Open {venue.opening_hours}–{venue.closing_hours} · {str(venue.active_capacity)} bags · ${str(venue.rate)}/hour</Text><View style={styles.durationRow}><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity + 1, venue.rate); }}><Text style={styles.stepperText}>+</Text></Pressable><Text style={styles.mutedSmall}>Capacity</Text><Pressable style={styles.stepperButton} onPress={lambda { saveVenueSettings(venue.name, venue.opening_hours, venue.closing_hours, venue.active_capacity, 3 if venue.rate == 2 else 2); }}><Text style={styles.stepperText}>$2 / $3</Text></Pressable></View></View> for venue in [v for v in venues if v.owner_name == hostEmail]]}</View>
-                <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Bag release verification</Text><Text style={styles.mutedSmall}>Camera QR scanning is unavailable in this build. Enter the tag reference and both codes manually. Release succeeds only for a checked-in reservation at your own venue.</Text><TextInput style={styles.partnerInput} value={checkoutDetails["tagInput"] if "tagInput" in checkoutDetails else ""} placeholder="Bag tag reference" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "tagInput": value}; }}/><Pressable style={styles.backButton} onPress={lambda { markCheckedIn(checkoutDetails["tagInput"]); }}><Text style={styles.backText}>Check in tag</Text></Pressable><TextInput style={styles.partnerInput} value={checkoutDetails["ownerInput"] if "ownerInput" in checkoutDetails else ""} placeholder="Traveler owner code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "ownerInput": value}; }}/><TextInput style={styles.partnerInput} value={checkoutDetails["hostInput"] if "hostInput" in checkoutDetails else ""} placeholder="Host release code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "hostInput": value}; }}/><Pressable style={styles.checkoutButton} onPress={lambda { releaseBag(checkoutDetails["tagInput"], checkoutDetails["ownerInput"], checkoutDetails["hostInput"]); }}><Text style={styles.reserveButtonText}>Verify both codes and release</Text></Pressable></View>
+                <View style={styles.partnerPanel}><Text style={styles.sectionTitle}>Bag release verification</Text><Text style={styles.mutedSmall}>{scannerStatus} Camera QR scanning requires a camera-enabled build. For now, enter the tag reference manually. Release is restricted to this account’s own venue and requires check-in plus both matching codes.</Text><TextInput style={styles.partnerInput} value={checkoutDetails["tagInput"] if "tagInput" in checkoutDetails else ""} placeholder="Bag tag reference" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "tagInput": value}; }}/><Pressable style={styles.backButton} onPress={lambda { markCheckedIn(checkoutDetails["tagInput"]); }}><Text style={styles.backText}>Check in tag</Text></Pressable><TextInput style={styles.partnerInput} value={checkoutDetails["ownerInput"] if "ownerInput" in checkoutDetails else ""} placeholder="Traveler owner code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "ownerInput": value}; }}/><TextInput style={styles.partnerInput} value={checkoutDetails["hostInput"] if "hostInput" in checkoutDetails else ""} placeholder="Host release code" placeholderTextColor="#777c74" onChangeText={lambda (value: str) { checkoutDetails = {**checkoutDetails, "hostInput": value}; }}/><Pressable style={styles.checkoutButton} onPress={lambda { releaseBag(checkoutDetails["tagInput"], checkoutDetails["ownerInput"], checkoutDetails["hostInput"]); }}><Text style={styles.reserveButtonText}>Verify both codes and release</Text></Pressable></View>
             </View>}
         </View>}
         {appMode == "traveler" and checkoutDetails["screen"] == "checkout" and <View>
