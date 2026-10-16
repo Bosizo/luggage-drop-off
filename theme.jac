@@ -1,116 +1,69 @@
-"""Design tokens and the stylesheet factory.
-
-React Native has no CSS, no Tailwind and no className -- styling is plain
-objects of camelCase properties built with StyleSheet.create. Keeping the tokens
-here and the sheet in a factory means the whole app re-skins from one place.
-
-There is deliberately no JSX in this file. E1105 (the no-HTML guard) is enforced
-on main.jac and .native.jac files but NOT on plain modules like this one, so a
-stray <div> here would compile clean and then break on a real device. Keep
-rendering in main.jac.
-"""
-
 import from "@jac/mobui" { StyleSheet }
 
-
-glob:pub DARK: dict = {
-         "bg": "#0b0d12",
-         "surface": "#151922",
-         "border": "#232937",
-         "text": "#e6e9ef",
-         "muted": "#8a93a6",
-         "accent": "#7c5cff",
-         "accentText": "#ffffff"
-     },
-     S: dict = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24},
-     R: dict = {"sm": 8, "md": 12, "lg": 16, "pill": 999},
-     F: dict = {"sm": 13, "md": 15, "lg": 18, "xl": 28};
-
-
-"""Build the stylesheet for a palette. Call once at module load, not per render.
-
-Returns `any`, not `dict`: StyleSheet.create hands back a sheet whose entries are
-read as attributes (`styles.card`). Annotating it `dict` turns every one of those
-reads into `error[E1030]: Type "dict" has no attribute "card"`.
-"""
-def:pub buildStyles(C: dict) -> any {
-    return StyleSheet.create(
-        {
-            "screen": {"flex": 1, "backgroundColor": C["bg"]},
-            "content": {"padding": S["xl"], "gap": S["lg"]},
-            # The top 44px is the status bar on a phone and the notch in the preview frame.
-            "screenContent": {
-                "paddingTop": 56,
-                "paddingBottom": S["xl"],
-                "paddingHorizontal": S["xl"],
-                "gap": S["lg"]
-            },
-            "title": {
-                "fontSize": F["xl"],
-                "fontWeight": "bold",
-                "color": C["text"]
-            },
-            "subtitle": {"fontSize": F["sm"], "color": C["muted"]},
-            # flexDirection defaults to "column" in RN -- rows must say so.
-            "row": {
-                "flexDirection": "row",
-                "alignItems": "center",
-                "gap": S["sm"]
-            },
-            "input": {
-                "flex": 1,
-                "padding": S["md"],
-                "borderRadius": R["md"],
-                "borderWidth": 1,
-                "borderColor": C["border"],
-                "backgroundColor": C["surface"],
-                "color": C["text"]
-            },
-            "addButton": {
-                "paddingVertical": S["md"],
-                "paddingHorizontal": S["lg"],
-                "borderRadius": R["md"],
-                "backgroundColor": C["accent"],
-                "alignItems": "center"
-            },
-            "addLabel": {"color": C["accentText"], "fontWeight": "bold"},
-            "card": {
-                "padding": S["lg"],
-                "borderRadius": R["md"],
-                "borderWidth": 1,
-                "borderColor": C["border"],
-                "backgroundColor": C["surface"]
-            },
-            "noteText": {"fontSize": F["md"], "color": C["text"], "flex": 1},
-            "noteDone": {
-                "fontSize": F["md"],
-                "color": C["muted"],
-                "flex": 1,
-                "textDecorationLine": "line-through"
-            },
-            "check": {
-                "width": 22,
-                "height": 22,
-                "borderRadius": R["pill"],
-                "borderWidth": 1,
-                "borderColor": C["accent"],
-                "alignItems": "center",
-                "justifyContent": "center"
-            },
-            "checkOn": {
-                "width": 22,
-                "height": 22,
-                "borderRadius": R["pill"],
-                "backgroundColor": C["accent"],
-                "alignItems": "center",
-                "justifyContent": "center"
-            },
-            "checkMark": {"color": C["accentText"], "fontSize": F["sm"]},
-            "empty": {
-                "padding": S["xl"],
-                "alignItems": "center",
-                "gap": S["sm"]
-            }
-        }
-    );
+def:pub buildStyles() -> any {
+    return StyleSheet.create({
+        "screen": {"flex": 1, "backgroundColor": "#f7f5ef"},
+        "screenContent": {"minHeight": "100%", "paddingTop": 48, "paddingBottom": 36, "gap": 0},
+        "nav": {"height": 56, "paddingHorizontal": 24, "flexDirection": "row", "alignItems": "center", "gap": 9, "backgroundColor": "#f7f5ef"},
+        "brandMark": {"width": 29, "height": 29, "borderRadius": 10, "backgroundColor": "#197963", "alignItems": "center", "justifyContent": "center"},
+        "brandGlyph": {"color": "#ffffff", "fontSize": 18, "fontWeight": "bold"},
+        "brandName": {"color": "#183b32", "fontSize": 16, "fontWeight": "bold", "letterSpacing": -0.5},
+        "navSpacer": {"flex": 1},
+        "navLink": {"color": "#777c74", "fontSize": 12, "marginRight": 12},
+        "avatar": {"width": 30, "height": 30, "borderRadius": 15, "backgroundColor": "#e9e1d2", "alignItems": "center", "justifyContent": "center"},
+        "avatarText": {"color": "#594935", "fontSize": 12, "fontWeight": "bold"},
+        "hero": {"paddingTop": 30, "paddingBottom": 20, "paddingHorizontal": 24, "gap": 10},
+        "eyebrow": {"flexDirection": "row", "alignItems": "center", "gap": 7},
+        "liveDot": {"width": 7, "height": 7, "borderRadius": 4, "backgroundColor": "#e09b58"},
+        "eyebrowText": {"fontSize": 10, "fontWeight": "bold", "letterSpacing": 1.2, "color": "#197963"},
+        "heroTitle": {"fontSize": 37, "lineHeight": 42, "fontWeight": "bold", "letterSpacing": -1.4, "color": "#183b32"},
+        "heroSubtitle": {"fontSize": 14, "lineHeight": 21, "color": "#777c74", "maxWidth": 360},
+        "searchPanel": {"marginHorizontal": 24, "marginBottom": 26, "padding": 15, "borderRadius": 16, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "flexDirection": "row", "alignItems": "center", "gap": 14},
+        "searchField": {"flex": 1, "gap": 8},
+        "fieldLabel": {"fontSize": 9, "fontWeight": "bold", "letterSpacing": 1, "color": "#777c74"},
+        "fieldValueRow": {"flexDirection": "row", "alignItems": "center", "gap": 6},
+        "pin": {"fontSize": 18, "color": "#197963"},
+        "locationInput": {"flex": 1, "height": 25, "padding": 0, "fontSize": 13, "fontWeight": "600", "color": "#183b32"},
+        "fieldDivider": {"width": 1, "height": 38, "backgroundColor": "#e8e5dc"},
+        "durationField": {"gap": 8},
+        "durationRow": {"flexDirection": "row", "alignItems": "center", "gap": 9},
+        "stepperButton": {"width": 27, "height": 27, "borderRadius": 9, "borderWidth": 1, "borderColor": "#e8e5dc", "alignItems": "center", "justifyContent": "center"},
+        "stepperText": {"fontSize": 17, "color": "#197963"},
+        "durationValue": {"fontSize": 12, "fontWeight": "600", "color": "#183b32"},
+        "resultsHeader": {"paddingHorizontal": 24, "paddingBottom": 13, "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
+        "sectionTitle": {"fontSize": 19, "fontWeight": "bold", "letterSpacing": -0.3, "color": "#183b32"},
+        "resultSubtitle": {"fontSize": 12, "color": "#777c74", "marginTop": 3},
+        "countPill": {"paddingVertical": 6, "paddingHorizontal": 10, "borderRadius": 99, "backgroundColor": "#e9f0e9"},
+        "countText": {"fontSize": 11, "fontWeight": "600", "color": "#197963"},
+        "list": {"paddingHorizontal": 24, "gap": 11},
+        "venueCard": {"padding": 14, "borderRadius": 15, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 11},
+        "venueTop": {"flexDirection": "row", "alignItems": "center", "gap": 10},
+        "venueIcon": {"width": 40, "height": 40, "borderRadius": 12, "backgroundColor": "#edf1e8", "alignItems": "center", "justifyContent": "center"},
+        "venueIconText": {"fontSize": 17, "fontWeight": "bold", "color": "#197963"},
+        "venueInfo": {"flex": 1, "gap": 3},
+        "venueName": {"fontSize": 14, "fontWeight": "bold", "color": "#183b32"},
+        "mutedSmall": {"fontSize": 11, "color": "#777c74"},
+        "rating": {"paddingVertical": 5, "paddingHorizontal": 7, "borderRadius": 8, "backgroundColor": "#f8f4e9"},
+        "ratingText": {"fontSize": 11, "fontWeight": "bold", "color": "#9a733c"},
+        "venueMeta": {"flexDirection": "row", "alignItems": "center", "gap": 8, "paddingLeft": 50},
+        "verifiedPill": {"paddingVertical": 4, "paddingHorizontal": 6, "borderRadius": 5, "backgroundColor": "#e9f3ed"},
+        "verifiedText": {"fontSize": 8, "fontWeight": "bold", "letterSpacing": 0.8, "color": "#197963"},
+        "cardFooter": {"paddingTop": 10, "borderTopWidth": 1, "borderTopColor": "#f0eee8", "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
+        "price": {"fontSize": 11, "color": "#777c74"},
+        "priceValue": {"fontSize": 17, "fontWeight": "bold", "color": "#183b32"},
+        "categoryText": {"fontSize": 10, "color": "#777c74", "marginTop": 3},
+        "reserveButton": {"paddingVertical": 9, "paddingHorizontal": 16, "borderRadius": 9, "backgroundColor": "#197963", "alignItems": "center"},
+        "reserveButtonText": {"fontSize": 12, "fontWeight": "bold", "color": "#ffffff"},
+        "successCard": {"marginHorizontal": 24, "marginBottom": 14, "padding": 14, "borderRadius": 14, "borderWidth": 1, "borderColor": "#c5dfcc", "backgroundColor": "#edf6ef", "flexDirection": "row", "alignItems": "center", "gap": 11},
+        "successIcon": {"width": 30, "height": 30, "borderRadius": 15, "backgroundColor": "#d8ebdc", "alignItems": "center", "justifyContent": "center"},
+        "successCheck": {"fontSize": 17, "fontWeight": "bold", "color": "#197963"},
+        "successCopy": {"flex": 1, "gap": 3},
+        "successTitle": {"fontSize": 13, "fontWeight": "bold", "color": "#183b32"},
+        "successSubtitle": {"fontSize": 10, "color": "#777c74"},
+        "successTotal": {"fontSize": 16, "fontWeight": "bold", "color": "#197963"},
+        "emptyCard": {"marginHorizontal": 24, "padding": 24, "alignItems": "center", "gap": 8, "borderRadius": 14, "backgroundColor": "#ffffff"},
+        "emptyTitle": {"fontSize": 15, "fontWeight": "bold", "color": "#183b32"},
+        "trustLine": {"paddingTop": 21, "paddingHorizontal": 24, "alignItems": "center"},
+        "trustText": {"fontSize": 8, "letterSpacing": 1, "color": "#777c74", "textAlign": "center"}
+    });
 }

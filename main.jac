@@ -1,31 +1,3 @@
-"""Mobile starter — one Jac source, running on iOS, Android and the web.
-
-    jac start main.jac --dev                        # web preview (react-native-web)
-    jac setup react-native                          # one-time Expo scaffold
-    jac start main.jac --client react-native --dev  # native (Expo Go / simulator)
-
-The backend graph and the UI live in the same file. Notes persist on the graph,
-so they survive a reload — there is no database to configure.
-
-## The one rule that is different from a web app
-
-This project sets `client_kind = "mobui"` in jac.toml, which turns on the
-compiler's no-HTML guard. `<div>`, `<span>`, `<button>`, `className` and CSS are
-all rejected with **E1105**. Build the UI from `@jac/mobui` primitives instead:
-
-    <div>   -> <View>        <button> -> <Pressable>
-    <span>  -> <Text>        <input>  -> <TextInput>
-    <p>/<h1>-> <Text>        <ul>     -> <ScrollView>
-
-**All text must sit inside a `<Text>`** — a bare string in a `<View>` crashes on
-native. Styling is `style={...}` objects via StyleSheet, never className.
-
-⚠ Keep the UI in this file. The guard covers main.jac and `.native.jac` files
-but NOT plain modules, so a `<div>` in a helper module compiles clean here and
-then breaks on a real device.
-"""
-
-import datetime;
 import from uuid { uuid4 }
 import from "@jac/mobui" {
     View,
@@ -35,154 +7,166 @@ import from "@jac/mobui" {
     ScrollView,
     useWindowDimensions
 }
-import from .theme { DARK, buildStyles }
+import from .theme { buildStyles }
 
-
-# ---------------------------------------------------------------------------
-# Backend — the graph is the database, walkers are the API
-# ---------------------------------------------------------------------------
-
-node Note {
-    has text: str,
-        done: bool = False,
-        # Stable id the UI can key rows on and address a single note with.
-        nid: str = str(uuid4()),
-        created_at: str = datetime.datetime.now().strftime("%H:%M");
+node Venue {
+    has name: str,
+        neighborhood: str,
+        category: str,
+        rate: int,
+        rating: str,
+        walk: str,
+        capacity: str,
+        verified: bool = True;
 }
 
-
-"""Read every note on the shared graph."""
-walker:pub load_notes {
-    can go with Root entry {
-        visit [-->[?:Note]];
-    }
-
-    can collect with Note entry {
-        report here;
-    }
+node Reservation {
+    has venue_name: str,
+        neighborhood: str,
+        hours: int,
+        total: int,
+        confirmation: str = str(uuid4());
 }
 
-
-"""Add a note. Blank text is ignored rather than stored."""
-walker:pub add_note {
-    has text: str;
-
-    can make with Root entry {
-        clean = self.text.strip();
-        if clean {
-            here ++> Note(text=clean);
-        }
-        visit [-->[?:Note]];
+"""Load the curated, verified venue directory and seed it once."""
+def:pub load_venues() -> list[Venue] {
+    venues = [root -->][?:Venue];
+    if len(venues) == 0 {
+        venues = [
+            root ++> Venue(name="The Hoxton Lobby", neighborhood="Shoreditch · London", category="Boutique hotel", rate=2, rating="4.9", walk="3 min walk", capacity="8 bags"),
+            root ++> Venue(name="Fern & Finch Café", neighborhood="Covent Garden · London", category="Neighborhood café", rate=2, rating="4.8", walk="5 min walk", capacity="5 bags"),
+            root ++> Venue(name="The Hoxton Holborn", neighborhood="Bloomsbury · London", category="Boutique hotel", rate=3, rating="4.9", walk="8 min walk", capacity="12 bags"),
+            root ++> Venue(name="Juniper House", neighborhood="Soho · London", category="Restaurant & bar", rate=2, rating="4.7", walk="9 min walk", capacity="6 bags")
+        ];
     }
-
-    can collect with Note entry {
-        report here;
-    }
+    return venues;
 }
 
-
-"""Flip one note's done flag, then return the whole list."""
-walker:pub toggle_note {
-    has nid: str;
-
-    can go with Root entry {
-        visit [-->[?:Note]];
-    }
-
-    can collect with Note entry {
-        if here.nid == self.nid {
-            here.done = not here.done;
-        }
-        report here;
-    }
+"""Persist a traveler's reservation and return its graph-backed record."""
+def:pub create_reservation(venue_name: str, neighborhood: str, hours: int) -> Reservation {
+    safe_hours = hours if hours >= 1 and hours <= 12 else 3;
+    rate = 2 if venue_name != "The Hoxton Holborn" else 3;
+    total = rate * safe_hours;
+    return root ++> Reservation(
+        venue_name=venue_name,
+        neighborhood=neighborhood,
+        hours=safe_hours,
+        total=total
+    );
 }
 
+glob styles = buildStyles();
 
-# ---------------------------------------------------------------------------
-# UI — @jac/mobui primitives only
-# ---------------------------------------------------------------------------
-
-glob styles = buildStyles(DARK);
-
-
-"""One note row — tap anywhere on it to toggle done."""
-def NoteRow(note: Note, onToggle: Callable[[str], None]) -> JsxElement {
-    return <Pressable style={styles.card} onPress={lambda { onToggle(note.nid); }}>
-        <View style={styles.row}>
-            <View style={styles.checkOn if note.done else styles.check}>
-                <Text style={styles.checkMark}>{"✓" if note.done else ""}</Text>
+"""A compact verified venue listing with a clear per-hour price."""
+def VenueCard(venue: Venue, onReserve: Callable[[str, str], None]) -> JsxElement {
+    return <View style={styles.venueCard}>
+        <View style={styles.venueTop}>
+            <View style={styles.venueIcon}><Text style={styles.venueIconText}>{"H" if venue.category == "Boutique hotel" else ("C" if venue.category == "Neighborhood café" else "R")}</Text></View>
+            <View style={styles.venueInfo}>
+                <Text style={styles.venueName}>{venue.name}</Text>
+                <Text style={styles.mutedSmall}>{venue.neighborhood}</Text>
             </View>
-            <Text style={styles.noteDone if note.done else styles.noteText}>
-                {note.text}
-            </Text>
-            <Text style={styles.subtitle}>{note.created_at}</Text>
+            <View style={styles.rating}><Text style={styles.ratingText}>★ {venue.rating}</Text></View>
         </View>
-    </Pressable>;
+        <View style={styles.venueMeta}>
+            <View style={styles.verifiedPill}><Text style={styles.verifiedText}>VERIFIED</Text></View>
+            <Text style={styles.mutedSmall}>{venue.walk}  ·  {venue.capacity}</Text>
+        </View>
+        <View style={styles.cardFooter}>
+            <View><Text style={styles.price}><Text style={styles.priceValue}>${str(venue.rate)}</Text>/bag / hour</Text><Text style={styles.categoryText}>{venue.category}</Text></View>
+            <Pressable style={styles.reserveButton} onPress={lambda { onReserve(venue.name, venue.neighborhood); }}>
+                <Text style={styles.reserveButtonText}>Reserve</Text>
+            </Pressable>
+        </View>
+    </View>;
 }
-
 
 def:pub app -> JsxElement {
-    has notes: list[Note] = [],
-        draft: str = "";
+    has venues: list[Venue] = [],
+        destination: str = "Shoreditch, London",
+        hours: str = "3",
+        booked: bool = False,
+        selectedVenue: str = "",
+        selectedArea: str = "",
+        confirmation: str = "";
 
-    # `flex: 1` needs a parent with a real height. On native the root has one; on
-    # web the mount node collapses to content height, so the screen background
-    # stops where the content stops and the rest of the phone renders white.
-    # Giving the root an explicit viewport height is the fix (same as littlex).
     viewport = useWindowDimensions();
 
     async can with entry {
-        result = root spawn load_notes();
-        notes = result.reports;
+        venues = await load_venues();
     }
 
-    async def addNote {
-        txt = draft.strip();
-        if not txt {
-            return;
-        }
-        # Clear the field first so the input feels instant, then persist.
-        draft = "";
-        result = root spawn add_note(text=txt);
-        notes = result.reports;
+    async def reserve(name: str, area: str) {
+        if booked { return; }
+        selectedVenue = name;
+        selectedArea = area;
+        parsed_hours = 3;
+        try { parsed_hours = int(hours); } except ValueError { parsed_hours = 3; }
+        reservation = await create_reservation(name, area, parsed_hours);
+        confirmation = reservation.confirmation;
+        booked = True;
     }
 
-    async def toggle(nid: str) {
-        result = root spawn toggle_note(nid=nid);
-        notes = result.reports;
+    def changeHours(delta: int) {
+        current = 3;
+        try { current = int(hours); } except ValueError { current = 3; }
+        updated = current + delta;
+        if updated < 1 { updated = 1; }
+        if updated > 12 { updated = 12; }
+        hours = str(updated);
     }
 
     return <ScrollView
         style={[styles.screen, {height: viewport.height}]}
         contentContainerStyle={styles.screenContent}
     >
-        <View>
-            <Text style={styles.title}>Notes</Text>
-            <Text style={styles.subtitle}>
-                Stored on the graph — they survive a reload.
-            </Text>
+        <View style={styles.nav}>
+            <View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View>
+            <Text style={styles.brandName}>luggagedrop</Text>
+            <View style={styles.navSpacer}/>
+            <Text style={styles.navLink}>How it works</Text>
+            <View style={styles.avatar}><Text style={styles.avatarText}>J</Text></View>
         </View>
 
-        <View style={styles.row}>
-            <TextInput
-                style={styles.input}
-                value={draft}
-                placeholder="Write a note"
-                placeholderTextColor={DARK["muted"]}
-                onChangeText={lambda (t: str) { draft = t; }}
-                onSubmitEditing={lambda { addNote(); }}
-            />
-            <Pressable style={styles.addButton} onPress={lambda { addNote(); }}>
-                <Text style={styles.addLabel}>Add</Text>
-            </Pressable>
+        <View style={styles.hero}>
+            <View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>YOUR CITY, HANDS-FREE</Text></View>
+            <Text style={styles.heroTitle}>Drop your bags.{"\n"}Pick up your day.</Text>
+            <Text style={styles.heroSubtitle}>Safe, local luggage storage at places worth discovering.</Text>
         </View>
+
+        <View style={styles.searchPanel}>
+            <View style={styles.searchField}>
+                <Text style={styles.fieldLabel}>NEAR</Text>
+                <View style={styles.fieldValueRow}><Text style={styles.pin}>⌖</Text><TextInput style={styles.locationInput} value={destination} onChangeText={lambda (v: str) { destination = v; }} placeholder="City or neighborhood" placeholderTextColor="#777c74"/></View>
+            </View>
+            <View style={styles.fieldDivider}/>
+            <View style={styles.durationField}>
+                <Text style={styles.fieldLabel}>HOW LONG?</Text>
+                <View style={styles.durationRow}>
+                    <Pressable style={styles.stepperButton} onPress={lambda { changeHours(-1); }}><Text style={styles.stepperText}>−</Text></Pressable>
+                    <Text style={styles.durationValue}>{hours} hours</Text>
+                    <Pressable style={styles.stepperButton} onPress={lambda { changeHours(1); }}><Text style={styles.stepperText}>+</Text></Pressable>
+                </View>
+            </View>
+        </View>
+
+        <View style={styles.resultsHeader}>
+            <View><Text style={styles.sectionTitle}>Good spots nearby</Text><Text style={styles.resultSubtitle}>A little local, a lot more freedom.</Text></View>
+            <View style={styles.countPill}><Text style={styles.countText}>{str(len(venues))} spots</Text></View>
+        </View>
+
+        {booked and <View style={styles.successCard}>
+            <View style={styles.successIcon}><Text style={styles.successCheck}>✓</Text></View>
+            <View style={styles.successCopy}><Text style={styles.successTitle}>You’re all set</Text><Text style={styles.successSubtitle}>{selectedVenue} · {selectedArea}</Text><Text style={styles.successSubtitle}>{hours} hours held · Ref {confirmation[:8]}</Text></View>
+            <Text style={styles.successTotal}>{"$" + str((int(hours) if hours.isdigit() else 3) * (3 if selectedVenue == "The Hoxton Holborn" else 2))}</Text>
+        </View>}
 
         {(
-            <View style={styles.empty}>
-                <Text style={styles.subtitle}>No notes yet.</Text>
-            </View>
-        ) if not notes else <View style={styles.content}>
-            {[<NoteRow key={n.nid} note={n} onToggle={toggle}/> for n in notes]}
+            <View style={styles.emptyCard}><Text style={styles.emptyTitle}>Finding your local spots</Text><Text style={styles.mutedSmall}>Verified places will appear here.</Text></View>
+        ) if len(venues) == 0 else <View style={styles.list}>
+            {[<VenueCard key={v.name} venue={v} onReserve={reserve}/> for v in venues]}
         </View>}
+
+        <View style={styles.trustLine}><Text style={styles.trustText}>SECURELY STORED  ·  INSURED  ·  FREE CANCELLATION</Text></View>
     </ScrollView>;
 }
