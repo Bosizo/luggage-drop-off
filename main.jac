@@ -103,8 +103,14 @@ def paymentMethods(destination: str) -> list[str] {
     if "China" in destination or "Hong Kong" in destination { return ["Credit or debit card", "Alipay", "WeChat Pay", "UnionPay"]; }
     if "Brazil" in destination { return ["Credit or debit card", "PayPal", "PIX", "Apple Pay", "Google Pay"]; }
     if "Singapore" in destination { return ["Credit or debit card", "PayPal", "PayNow", "Apple Pay", "Google Pay"]; }
-    if "Japan" in destination { return ["Credit or debit card", "PayPal", "PayPay", "Konbini", "Apple Pay"]; }
-    if "United States" in destination or "USA" in destination or "Canada" in destination { return ["Credit or debit card", "PayPal", "Apple Pay", "Google Pay", "Cash App Pay"]; }
+    if "Japan" in destination or "Tokyo" in destination { return ["Credit or debit card", "PayPal", "PayPay", "Konbini", "Apple Pay"]; }
+    if "United States" in destination or "USA" in destination { return ["Credit or debit card", "PayPal", "Apple Pay", "Google Pay", "Cash App Pay"];
+    }
+    if "Canada" in destination { return ["Credit or debit card", "PayPal", "Interac", "Apple Pay", "Google Pay"]; }
+    if "United Kingdom" in destination { return ["Credit or debit card", "PayPal", "Apple Pay", "Google Pay", "Open banking"];
+    }
+    if "France" in destination { return ["Credit or debit card", "Carte Bancaire", "PayPal", "Apple Pay", "Google Pay"]; }
+    if "Germany" in destination { return ["Credit or debit card", "PayPal", "Klarna", "Apple Pay", "Google Pay"]; }
     return ["Credit or debit card", "PayPal", "Apple Pay", "Google Pay", "Bank transfer"];
 }
 
@@ -150,15 +156,18 @@ def:pub app -> JsxElement {
         reservations = await load_reservations();
     }
 
-    async def choose(value: str) {
+    def choose(value: str) {
         destination = value;
         checkoutDetails = {**checkoutDetails, "cityMenu": "false"};
-        venues = await load_venues(value);
     }
 
     activeReservations = reservations;
     cityKey = destination.split(",")[0];
-    nearbyVenues = [v for v in venues if v.city == cityKey];
+    matchedVenues = [v for v in venues if v.city == cityKey];
+    nearbyVenues = matchedVenues if len(matchedVenues) > 0 else [
+        Venue(name=cityKey + " Airport Hotel", neighborhood="Airport district", category="Airport hotel", rate=3, rating="4.8", walk="5 min walk", capacity="10 bags", city=cityKey),
+        Venue(name=cityKey + " Local Café", neighborhood="City center", category="Neighborhood café", rate=2, rating="4.7", walk="8 min walk", capacity="6 bags", city=cityKey)
+    ];
     return <ScrollView style={[styles.screen, {height: viewport.height}]} contentContainerStyle={styles.screenContent}>
         <View style={styles.nav}><View style={styles.brandMark}><Text style={styles.brandGlyph}>L</Text></View><Text style={styles.brandName}>LuggageDrop</Text><View style={styles.navSpacer}/><Text style={styles.navLink}>Travel lighter</Text></View>
         {checkoutDetails["screen"] == "checkout" and <View>
@@ -168,7 +177,7 @@ def:pub app -> JsxElement {
                 <View style={styles.hero}><View style={styles.eyebrow}><View style={styles.liveDot}/><Text style={styles.eyebrowText}>SECURE CHECKOUT</Text></View><Text style={styles.heroTitle}>Review your{"\n"}storage.</Text><Text style={styles.heroSubtitle}>Confirm your details and choose a payment method.</Text></View>
                 <View style={styles.checkoutSummary}><Text style={styles.sectionTitle}>{checkoutDetails["venue"]}</Text><Text style={styles.checkoutCopy}>{checkoutDetails["area"]} · {destination}</Text><Text style={styles.checkoutCopy}>{str(checkoutDetails["bags"])} bags × {str(checkoutDetails["hours"])} hours</Text><Text style={styles.weightDisclaimer}>Each bag must weigh no more than 25 kg.</Text><View style={styles.checkoutRule}/><View style={styles.checkoutRow}><Text style={styles.checkoutCopy}>Total</Text><Text style={styles.checkoutTotal}>${str(checkoutDetails["total"])}</Text></View></View>
                 <View style={styles.paymentSection}><Text style={styles.sectionTitle}>Choose payment</Text><Text style={styles.resultSubtitle}>Options vary by destination. Demo only; no payment details required.</Text></View>
-                {[<Pressable key={method} style={styles.paymentOption} onPress={lambda { checkoutDetails = {**checkoutDetails, "payment": method}; }}><View style={styles.paymentRadio}><Text style={styles.paymentRadioText}>{"●" if checkoutDetails["payment"] == method else "○"}</Text></View><View><Text style={styles.paymentName}>{method}</Text><Text style={styles.mutedSmall}>{paymentDescription(method)}</Text></View></Pressable> for method in ["Credit or debit card", "PayPal", "Apple Pay", "Google Pay", "Bank transfer"]]}
+                {[<Pressable key={method} style={styles.paymentOption} onPress={lambda { checkoutDetails = {**checkoutDetails, "payment": method}; }}><View style={styles.paymentRadio}><Text style={styles.paymentRadioText}>{"●" if checkoutDetails["payment"] == method else "○"}</Text></View><View><Text style={styles.paymentName}>{method}</Text><Text style={styles.mutedSmall}>{paymentDescription(method)}</Text></View></Pressable> for method in paymentMethods(destination)]}
                 <Pressable style={styles.checkoutButton} onPress={confirmCheckout}><Text style={styles.reserveButtonText}>Confirm demo booking · ${str(checkoutDetails["total"])}</Text></Pressable>
             </View>}
         </View>}
@@ -180,7 +189,7 @@ def:pub app -> JsxElement {
             {checkoutDetails["cityMenu"] == "true" and <View style={styles.cityMenu}><Text style={styles.fieldLabel}>INTERNATIONAL AIRPORT CITIES</Text>{[<Pressable key={city} style={styles.cityOption} onPress={lambda { choose(city); }}><Text style={styles.cityOptionText}>{city}</Text></Pressable> for city in ["Atlanta, USA · ATL · Hartsfield-Jackson", "Los Angeles, USA · LAX · Los Angeles International", "New York City, USA · JFK · John F. Kennedy", "Chicago, USA · ORD · O’Hare", "Denver, USA · DEN · Denver International", "Dallas, USA · DFW · Dallas/Fort Worth", "Toronto, Canada · YYZ · Pearson", "Vancouver, Canada · YVR · Vancouver International", "Mexico City, Mexico · MEX · Mexico City International", "London, United Kingdom · LHR · Heathrow", "Paris, France · CDG · Charles de Gaulle", "Amsterdam, Netherlands · AMS · Schiphol", "Frankfurt, Germany · FRA · Frankfurt Airport", "Istanbul, Turkey · IST · Istanbul Airport", "Madrid, Spain · MAD · Adolfo Suárez Madrid–Barajas", "Rome, Italy · FCO · Fiumicino", "Zurich, Switzerland · ZRH · Zurich Airport", "Singapore · SIN · Changi", "Seoul, South Korea · ICN · Incheon", "Tokyo, Japan · HND · Haneda", "Tokyo, Japan · NRT · Narita", "Hong Kong · HKG · Hong Kong International", "Beijing, China · PEK · Capital / PKX · Daxing", "Shanghai, China · PVG · Pudong", "New Delhi, India · DEL · Indira Gandhi", "Bangkok, Thailand · BKK · Suvarnabhumi", "Sydney, Australia · SYD · Kingsford Smith", "Dubai, UAE · DXB · Dubai International", "Doha, Qatar · DOH · Hamad International", "Jeddah, Saudi Arabia · JED · King Abdulaziz", "Dammam, Saudi Arabia · DMM · King Fahd", "Abu Dhabi, UAE · AUH · Zayed International", "Johannesburg, South Africa · JNB · OR Tambo", "Cairo, Egypt · CAI · Cairo International", "Nairobi, Kenya · NBO · Jomo Kenyatta", "São Paulo, Brazil · GRU · Guarulhos", "Bogotá, Colombia · BOG · El Dorado"]]}</View>}
             <View style={styles.resultsHeader}><View><Text style={styles.sectionTitle}>Good spots nearby</Text><Text style={styles.resultSubtitle}>{destination}</Text></View><View style={styles.countPill}><Text style={styles.countText}>{str(len(nearbyVenues))} spots</Text></View></View>
             {[<View key={r.confirmation} style={styles.bookingCard}><View style={styles.successCopy}><Text style={styles.successTitle}>{r.venue_name}</Text><Text style={styles.successSubtitle}>{str(r.bags)} bags · {str(r.hours)} hours · ${str(r.total)} · Ref {r.confirmation[:8]}</Text></View><Pressable style={styles.cancelButton} onPress={lambda { cancel(r.confirmation); }}><Text style={styles.cancelText}>Cancel</Text></Pressable></View> for r in activeReservations]}
-            {len(nearbyVenues) == 0 and <View style={styles.emptyCard}><Text style={styles.emptyTitle}>No storage spots listed yet</Text><Text style={styles.mutedSmall}>We’re adding verified venues in {cityKey} soon.</Text></View>}
+            {len(matchedVenues) == 0 and <View style={styles.emptyCard}><Text style={styles.emptyTitle}>Preview spots in {cityKey}</Text><Text style={styles.mutedSmall}>Showing sample local venues while our verified network grows here.</Text></View>}
             <View style={styles.list}>{[<VenueCard key={v.name} venue={v} bags={int(bags)} hours={int(hours)} onReserve={reserve}/> for v in nearbyVenues]}</View>
             <Text style={styles.weightDisclaimer}>Luggage size and weight disclaimer: each bag must weigh no more than 25 kg.</Text>
         </View>}
