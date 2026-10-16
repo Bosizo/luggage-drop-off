@@ -99,6 +99,21 @@ def:pub buildStyles() -> any {
         "totalPrice": {"fontSize": 23, "fontWeight": "bold", "color": "#197963"},
         "weightDisclaimer": {"marginHorizontal": 24, "marginTop": 14, "marginBottom": 24, "padding": 12, "borderRadius": 10, "backgroundColor": "#f1eee5", "fontSize": 11, "lineHeight": 16, "color": "#686b64"},
         "reserveGroup": {"alignItems": "flex-end", "gap": 4},
-        "cardTotal": {"fontSize": 11, "fontWeight": "bold", "color": "#197963"}
+        "cardTotal": {"fontSize": 11, "fontWeight": "bold", "color": "#197963"},
+        "backButton": {"marginHorizontal": 24, "marginTop": 10, "paddingVertical": 10},
+        "backText": {"fontSize": 12, "fontWeight": "600", "color": "#197963"},
+        "checkoutSummary": {"marginHorizontal": 24, "marginBottom": 18, "padding": 16, "borderRadius": 15, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 8},
+        "checkoutCopy": {"fontSize": 12, "lineHeight": 18, "color": "#777c74"},
+        "checkoutRule": {"height": 1, "backgroundColor": "#e8e5dc", "marginVertical": 5},
+        "checkoutRow": {"flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
+        "checkoutTotal": {"fontSize": 23, "fontWeight": "bold", "color": "#197963"},
+        "paymentSection": {"paddingHorizontal": 24, "paddingBottom": 12, "gap": 4},
+        "paymentOption": {"marginHorizontal": 24, "marginBottom": 8, "padding": 13, "borderRadius": 12, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "flexDirection": "row", "alignItems": "center", "gap": 11},
+        "paymentRadio": {"width": 22, "height": 22, "borderRadius": 11, "borderWidth": 1, "borderColor": "#197963", "alignItems": "center", "justifyContent": "center"},
+        "paymentRadioText": {"fontSize": 13, "color": "#197963"},
+        "paymentName": {"fontSize": 13, "fontWeight": "bold", "color": "#183b32"},
+        "checkoutButton": {"marginHorizontal": 24, "marginTop": 12, "paddingVertical": 15, "paddingHorizontal": 16, "borderRadius": 11, "backgroundColor": "#197963", "alignItems": "center"},
+        "checkoutSuccess": {"marginHorizontal": 24, "marginTop": 32, "padding": 22, "borderRadius": 16, "backgroundColor": "#edf6ef", "alignItems": "center", "gap": 12},
+        "checkoutTitle": {"fontSize": 22, "fontWeight": "bold", "color": "#183b32"}
     });
 }
