@@ -92,6 +92,7 @@ def:pub buildStyles() -> any {
         "cityMenu": {"marginHorizontal": 24, "marginTop": -16, "marginBottom": 20, "padding": 12, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "gap": 4, "maxHeight": 270, "overflow": "scroll"},
         "cityOption": {"paddingVertical": 10, "paddingHorizontal": 8, "borderBottomWidth": 1, "borderBottomColor": "#f0eee8"},
         "cityOptionText": {"fontSize": 13, "color": "#183b32"},
+        "airportSearch": {"height": 40, "paddingHorizontal": 10, "marginVertical": 8, "borderRadius": 9, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "fontSize": 13, "color": "#183b32"},
         "bagPanel": {"marginHorizontal": 24, "marginBottom": 12, "padding": 14, "borderRadius": 14, "borderWidth": 1, "borderColor": "#e8e5dc", "backgroundColor": "#ffffff", "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
         "bagInfo": {"gap": 4},
         "totalCard": {"marginHorizontal": 24, "marginBottom": 5, "paddingHorizontal": 16, "paddingVertical": 12, "borderRadius": 12, "backgroundColor": "#e9f3ed", "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
